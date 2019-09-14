@@ -21,7 +21,6 @@ var storage = multer.diskStorage({
 var upload = multer({ storage: storage }).single('file');
 
 app.get('/', function (req, res, next) {
-    console.log('here');
     res.send('hola');
 });
 
@@ -36,6 +35,7 @@ app.post('/', upload, function (req, res, next) {
     const content = readFile.toString().replace('\r','');
     const lines = content.split('\n');
     const transitions = lines[0].split(',');
+    const parallelCounters = {}
     let nodes = Array();
     let edges = Array();
     for(let i = 1; i < lines.length; i++){
@@ -60,14 +60,16 @@ app.post('/', upload, function (req, res, next) {
             let pointers = values[j].substr(index).trim().split('|');
             for(let k = 0; k < pointers.length; k++)
             {
+                if(parallelCounters[parallelKey(i, pointers[k])]!=undefined){
+                    parallelCounters[parallelKey(i, pointers[k])]++;
+                }
+                else{
+                    parallelCounters[parallelKey(i, pointers[k])]=0;
+                }
                 // TODO: add Edge count to parallel edges
                 if (pointers[k].length > 0)
                 {
-                    edges.push(new Edge(Math.random(), i, pointers[k], transitions[j]));
-                }
-                else
-                {
-                    edges.push(new Edge(Math.random(), i, pointers[k], 'epsilon'));
+                    edges.push(new Edge(Math.random(), i, pointers[k], transitions[j], parallelCounters[parallelKey(i, pointers[k])]));
                 }
             }
             
@@ -82,3 +84,10 @@ var server = app.listen(8081, function () {
    
    console.log("Example app listening at http://%s:%s", host, port)
 })
+
+var parallelKey = (node1, node2) => {
+    if(node1<=node2){
+        return node1+","+node2;
+    }
+    return node2+","+node1;
+}
